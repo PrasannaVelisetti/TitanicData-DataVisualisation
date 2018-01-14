@@ -1,0 +1,193 @@
+
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script type="text/javascript" src="d3.v3.min.js"></script>
+	<script type="text/javascript" src="dimple.v2.1.6.min.js"></script>
+	
+	<style>
+		h1   {font-family: Arial;}
+		#cat_label    {position:absolute; left:650px;
+		top:90px;white-space:pre;font-weight:bold;
+		font-family:Cambria;}
+		#cat_label_1 {position:absolute; left:680px;top:60px;
+		font-family:Cambria; color:green;}
+
+		#AgeGroup_labels {
+			color:orange;
+			position:absolute;
+			top:600px;
+			left:580px;
+		}
+		
+		svg {
+			position: relative;
+			left:330px;
+			top:100px;
+			z-index: -1;
+		}
+		
+		
+		#cat1 {
+		position: absolute;
+		font-size: 15px;
+		left:650px;
+		top:130px;
+		width:100px;
+		height:25px;
+		font-family:Cambria;
+		}
+		 
+		#cat2 {position: absolute;
+		font-size: 15px;
+		left:750px;
+		top:130px;
+		width:100px;
+		height:25px;
+		font-family:Cambria;
+		}
+
+
+	</style>
+</head>
+<body>
+
+	<h1 align="center">Analysis on Titanic Disaster</h1>
+
+	<!--Creating the dropdown for User interaction-->
+	<select  id="cat1" name="cat1">
+			<option value ="Pclass" selected>Pclass</option>
+			<option value ="AgeGroup">AgeGroup</option>
+			<option value ="Sex">Sex</option>
+			<option value ="Siblings/Spouse">Siblings/Spouse</option>
+	 </select>
+	 <select id="cat2" name="cat2">
+			<option value ="Survived" selected>Survived</option>
+			<option value ="AgeGroup">AgeGroup</option>
+			<option value ="Sex">Sex</option>
+			<option value ="Siblings/Spouse">Siblings/Spouse</option>   
+			<option value ="Pclass">Pclass</option>
+	 </select>
+
+	 <p id= cat_label_1> Explore by yourself </p>
+	 <p id=cat_label>  X-Category       Y-Category</p>
+	 <p id=AgeGroup_labels>*Note: Old (> 40); Infant(< 1); Adult(> 15 and < 40); Kid(<= 15) </p>
+	 
+		
+		<script type="text/javascript">
+			var padding = 100,
+			padding_2=100,
+			width = 1000,
+			height = 500,   
+			rightBar = width / 8,
+			legendheight = height/4;  
+			//Creating svg for the charts 
+			var svg = dimple.newSvg("body", width - rightBar, height);
+			var dropdown_cat1 = d3.select("#cat1");
+			var dropdown_cat2 = d3.select("#cat2");
+			var cat2_d=document.getElementById('cat2');
+			var ind = 0;
+			//Diabling the user interation with the dropdown
+			d3.select("#cat1").style("opacity", 0);
+			d3.select("#cat2").style("opacity", 0);
+			d3.select("#cat_label").style("opacity", 0);
+			d3.select("#cat_label_1").style("opacity", 0); 
+			d3.select("#AgeGroup_labels").style("opacity", 0);
+				
+			 
+			function plotcharts(data) {     
+
+				var chart = new dimple.chart(svg, data);      
+				var legend = chart.addLegend(padding_2/2,padding_2/4, rightBar, padding_2, "center");
+				legend.fontSize = 15;
+				chart.setBounds(1.5*padding,padding, width - 3.5*rightBar, height - 2*padding);   
+				chart.draw();
+				//Update function used for animation of charts
+				function update(cat1,cat2,i){   
+					var chart = new dimple.chart(svg, data);
+					if (cat2=="AgeGroup") var legend = chart.addLegend(50,25,520,50, "center");
+					else if (cat2=="Siblings/Spouse") var legend = chart.addLegend(50,25,600,50, "center");
+					else var legend = chart.addLegend(50,25,450,50, "center");
+					//var legend = chart.addLegend(padding_2/2,padding_2/4, rightBar, padding_2, "right");
+					legend.fontSize = 15;
+					
+					chart.setBounds(1.5*padding,padding, width - 3.5*rightBar, height - 2*padding);
+					var x = chart.addCategoryAxis("x", cat1);
+					var y = chart.addPctAxis("y", "Percentage of Passengers");
+					var mySeries = chart.addSeries(cat2, dimple.plot.bar);
+
+					if(cat2=="AgeGroup") d3.select("#AgeGroup_labels").style("opacity", 1);
+					else d3.select("#AgeGroup_labels").style("opacity", 0);
+
+					mySeries.aggregate = dimple.aggregateMethod.count;
+					chart.assignColor("Perished", "red");
+					mySeries.addOrderRule("Survived","Perished");         
+					y.addOrderRule(cat1,true);
+					y.fontSize = 15;
+					x.fontSize = 15;       
+					chart.draw();
+				}
+				// update_UI is used for user interation after animation
+				function update_UI(){
+				chart.svg.selectAll('*').remove();
+				var source_cat1 = dropdown_cat1.node().options[dropdown_cat1.node().selectedIndex].value;
+				var source_cat2=  dropdown_cat2.node().options[dropdown_cat2.node().selectedIndex].value;
+				if (source_cat1==source_cat2) // Single Series plot
+				{
+					update(source_cat1,source_cat2,1);
+					alert("PLEASE SELECT DIFFERENT CATEGORIES");
+				}
+				else update(source_cat1,source_cat2,5); //Double Series plot
+				
+				}
+				
+				var parameters=["Pclass","AgeGroup","Sex","Siblings/Spouse"];
+				// Setting interval for the animation   
+				var interval = setInterval(function() {
+					
+					chart.svg.selectAll('*').remove();
+					//Single series plot
+					if(ind<4)
+					{
+						update(parameters[ind],"Survived",ind);
+					}
+								
+					// Double Series plot            
+					if (ind>=4) {
+						 
+						 if(ind<7)
+						 {          
+							update(parameters[0],parameters[ind-3],ind);
+						 }
+						 else if (ind<9)
+						 {
+							update(parameters[1],parameters[ind-5],ind);
+						 }
+						 else  update(parameters[2],parameters[3],ind);
+					}
+
+					if(ind >= 9) {
+						clearInterval(interval);
+						//Activate User control
+						d3.select("#cat1").style("opacity", 1);
+						d3.select("#cat2").style("opacity", 1);
+						d3.select("#cat_label").style("opacity", 1);
+						d3.select("#cat_label_1").style("opacity", 1);
+
+						update_UI();          
+					}
+					ind++;
+							}, 1500);   
+				
+				}
+				function load_csv()	{
+					d3.csv("titanic.csv", plotcharts);
+				}
+				
+				load_csv();
+					
+				//Dynamically re-plot when user changes the options in dropdown
+				dropdown_cat1.on("change", load_csv);
+				dropdown_cat2.on("change",load_csv);
+			 
+		</script>
+	</body>
+</html>
